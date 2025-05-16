@@ -11,6 +11,7 @@ MUTATION_RANGE = 10000
 PICK_NUMBER_FROM_PREV_GEN = 1000
 PICK_NUMBER_FOR_PARENTS = 1000
 NUMBER_OF_EQUATIONS = 4
+STAGNATION_LIMIT = 30
 MAX_VALUE = 1e7
 MIN_VALUE = -1e7
 
@@ -55,7 +56,6 @@ def q3fitness(ind, funcs):
             val = f(x_val, y_val, z_val, t_val)
             total_error += abs(val)
     except Exception:
-
         return float('inf')
     return total_error
 
@@ -67,17 +67,16 @@ def select_parent(population, scores):
 
 
 input_equations = []
-
 for i in range(NUMBER_OF_EQUATIONS):
     equation = input(f"Enter equation {i+1} (e.g., 2*x + 3*y - z * t = 10): ")
     input_equations.append(equation)
 
-
 parsed_eqs = [parse_equation_string(eq) for eq in input_equations]
 funcs = create_functions(parsed_eqs)
 population = initial_generation()
-best_loss = None
-
+stagnation_count = 0
+best_loss = float('inf')
+previous_best = None
 
 for generation in range(GENERATIONS):
     scores = np.array([q3fitness(index, funcs) for index in population])
@@ -87,6 +86,17 @@ for generation in range(GENERATIONS):
     current_best = population[0]
     current_loss = scores[0]
     if current_loss <= 0.00001:
+        break
+    if previous_best is not None and np.allclose(current_best, previous_best, rtol=1e-5, atol=1e-5):
+        stagnation_count += 1
+    else:
+        stagnation_count = 0
+
+    previous_best = current_best.copy()
+
+    if stagnation_count >= STAGNATION_LIMIT:
+        print(
+            f"🛑 Stopped due to stagnation after {generation + 1} generations")
         break
     next_generation = population[:PICK_NUMBER_FROM_PREV_GEN].tolist()
     while len(next_generation) < POPULATION_SIZE:
@@ -101,7 +111,7 @@ for generation in range(GENERATIONS):
 
 answer = population[0]
 final_loss = q3fitness(answer, funcs)
-print("\n✅ Best solution found:")
+print(f"\n✅ Best solution found:")
 print(f"x = {answer[0]:.2f}")
 print(f"y = {answer[1]:.2f}")
 print(f"z = {answer[2]:.2f}")

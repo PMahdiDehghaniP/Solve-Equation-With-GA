@@ -76,7 +76,8 @@ funcs = create_functions(parsed_eqs)
 
 population = initial_generation()
 stagnation_count = 0
-best_loss = None
+best_loss = float('inf')
+previous_best = None
 
 for generation in range(GENERATIONS):
     scores = np.array([q2fitness(index, funcs) for index in population])
@@ -88,6 +89,18 @@ for generation in range(GENERATIONS):
     current_loss = scores[0]
 
     if current_loss <= 0.0000001:
+        break
+
+    if previous_best is not None and np.allclose(current_best, previous_best, rtol=1e-5, atol=1e-5):
+        stagnation_count += 1
+    else:
+        stagnation_count = 0
+
+    previous_best = current_best.copy()
+
+    if stagnation_count >= STAGNATION_LIMIT:
+        print(
+            f"🛑 Stopped due to stagnation after {generation + 1} generations")
         break
 
     next_generation = population[:PICK_NUMBER_FROM_PREV_GEN].tolist()
@@ -108,8 +121,8 @@ answer = population[0]
 final_loss = q2fitness(answer, funcs)
 
 print("\n✅ Best solution found:")
-print(f"x = {answer[0]:.8f}")
-print(f"y = {answer[1]:.8f}")
-print(f"z = {answer[2]:.8f}")
-print(f"🔍 Total error: {final_loss:.10f}")
+print(f"x = {answer[0]:.2f}")
+print(f"y = {answer[1]:.2f}")
+print(f"z = {answer[2]:.2f}")
+print(f"🔍 Total error: {final_loss:.2f}")
 print(f"🧬 Stopped after {generation + 1} generations")

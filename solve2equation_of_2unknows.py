@@ -1,10 +1,8 @@
-
 import numpy as np
 import random
 from sympy import symbols, Eq, sympify, lambdify
 
-x, y, z = symbols('x y z')
-
+x, y = symbols('x y')
 GENERATIONS = 10000
 POPULATION_SIZE = 5000
 MUTATION_RATE = 0.4
@@ -76,7 +74,9 @@ parsed_eqs = [parse_equation_string(eq) for eq in input_equations]
 funcs = create_functions(parsed_eqs)
 
 population = initial_generation()
-best_loss = None
+stagnation_count = 0
+best_loss = float('inf')
+previous_best = None
 
 for generation in range(GENERATIONS):
     scores = np.array([q1fitness(index, funcs) for index in population])
@@ -88,6 +88,18 @@ for generation in range(GENERATIONS):
     current_loss = scores[0]
 
     if current_loss <= 0.000001:
+        break
+
+    if previous_best is not None and np.allclose(current_best, previous_best, rtol=1e-5, atol=1e-5):
+        stagnation_count += 1
+    else:
+        stagnation_count = 0
+
+    previous_best = current_best.copy()
+
+    if stagnation_count >= STAGNATION_LIMIT:
+        print(
+            f"🛑 Stopped due to stagnation after {generation + 1} generations")
         break
 
     next_generation = population[:PICK_NUMBER_FROM_PREV_GEN].tolist()
@@ -102,13 +114,13 @@ for generation in range(GENERATIONS):
     population = np.array(next_generation)
 
     print(
-        f"Gen {generation+1}: x={current_best[0]:.4f}, y={current_best[1]:.4f} Loss={current_loss:.8f}")
+        f"Gen {generation+1}: x={current_best[0]:.4f}, y={current_best[1]:.4f}, Loss={current_loss:.8f}")
 
 answer = population[0]
 final_loss = q1fitness(answer, funcs)
 
 print("\n✅ Best solution found:")
-print(f"x = {answer[0]:.8f}")
-print(f"y = {answer[1]:.8f}")
-print(f"🔍 Total error: {final_loss:.7f}")
+print(f"x = {answer[0]:.2f}")
+print(f"y = {answer[1]:.2f}")
+print(f"🔍 Total error: {final_loss:.2f}")
 print(f"🧬 Stopped after {generation + 1} generations")
